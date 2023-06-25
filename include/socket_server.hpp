@@ -6,35 +6,44 @@
 #include <boost/config.hpp>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
+#include <session.hpp>
 
 using namespace std;
-
+const int PORT = 5000;
+/**
+ * Define type
+*/
 typedef websocketpp::config::asio asio;
 typedef websocketpp::server<asio> socket_server;
 typedef websocketpp::connection_hdl conn_hdl;
 typedef socket_server::connection_ptr _connection;
 typedef socket_server::message_ptr _message;
+typedef map<string, conn_hdl> users_t;
 
 
-class SocketServer {
+/**
+ * Socket class interfacing
+*/
+class Socket {
 public:
-    typedef websocketpp::lib::shared_ptr<SocketServer> ptr;
+    typedef std::shared_ptr<Socket> ptr;
 
-    SocketServer();
-    void run();
+    Socket();
+    void run(int port);
     void addUser(string userId, conn_hdl connectionHandler);
     void removeUser(string userId);
-    void getUserConnectionHandler(string userId);
-    void userExist();
+    conn_hdl getUserConnectionHandler(string userId);
+    bool userExist(string userId);
+    bool sessionExist(string userId, string toUserId);
     void onOpen(conn_hdl connectionHandler);
     void onClose(conn_hdl connectionHandler);
     void onMessage(conn_hdl connectionHandler, _message message);
 
 private:
-    map<string, conn_hdl> users;
+    users_t users;
+    vector<string> sessions;
     socket_server server;
-    int port = 9782;
+    int port;
 };
 
-
-#endif
+#endif // SOCKET_SERVER_HPP

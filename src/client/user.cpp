@@ -7,6 +7,7 @@
  * set constructor of class User
 */
 
+
 // Set method setUser on class User
 void User::setUser(string username, string fullname, string password) {
     this->username = username;
@@ -14,31 +15,37 @@ void User::setUser(string username, string fullname, string password) {
     this->password = password;
 }
 
-// Set method setUser by user object on class User
-void User::setUser(User user) {
-    this->username = user.username;
-    this->fullname = user.fullname;
-    this->password = user.password;
-}
-
-// Set method it (returning current user object) on class User
-User& User::it() {
-    return *this;
-}
-
-// Set method createUser on class User
-User& User::createUser(string username, string fullname, string password) {
-    this->username = username;
-    this->fullname = fullname;
-    this->password = password;
-
-    return *this;
-}
-
 // Set method addUser on class User
-void User::addUser(User user) {
-    users.insert(make_pair(user.username, user));
+void User::addUser(string username, string fullname, string password) {
+    vector<string> defaultUser = { 
+        this->username,
+        this->fullname,
+        this->password
+    };
+    
+    this->setUser(username, fullname, password);
+    this->users.insert(make_pair(username, *this));
+
+    this->setUser(defaultUser[0], defaultUser[1], defaultUser[2]);
 }
+
+// Set method setUsers on class User
+User& User::setUsers(vector<vector<string>> users) {
+    for (int i = 0; i < users.size(); i++) {
+        if (users.at(i).size() != 3 ) {
+            throw runtime_error("setUser Error, Masukan data user seperti: setUser({{ 'username', 'fullname', 'password' }})");
+        }
+
+        this->addUser(
+            users.at(i)[0],   // Username = at vector index 0
+            users.at(i)[1],   // Fullname = at vector index 1
+            users.at(i)[2]    // Password = at vector index 2
+        );
+    }
+    
+    return *this;
+}
+
 
 // Set method setUsername on class User
 void User::setUsername(string username) {
@@ -68,4 +75,9 @@ string User::getFullname() {
 // Set method getPassword on class User
 string User::getPassword() {
     return this->password;
+}
+
+// Set method getUsers on class User
+map<string, User> User::getUsers() {
+    return this->users;
 }

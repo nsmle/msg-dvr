@@ -33,6 +33,8 @@ void SocketMetadata::onOpen(socket_client *_client, conn_hdl connectionHandler) 
 void SocketMetadata::onClose(socket_client *_client, conn_hdl connectionHandler) {
     this->status = "Closed";
 
+    std::cout << "Closed" << endl;
+
     _connection conn = _client->get_con_from_hdl(connectionHandler);
     this->server = conn->get_response_header("Server");
     // this->errorReason = conn->get_ec().message();
@@ -53,11 +55,51 @@ void SocketMetadata::onClose(socket_client *_client, conn_hdl connectionHandler)
 
 // set method action onFail in class Metadata
 void SocketMetadata::onFail(socket_client *_client, conn_hdl connectionHandler) {
-    this->status = "Failed";
-
     _connection conn = _client->get_con_from_hdl(connectionHandler);
-    this->server = conn->get_response_header("Server");
-    this->errorReason = conn->get_ec().message();
+    string errorMessage = conn->get_ec().message();
+    this->errorReason = errorMessage == "Underlying Transport Error" 
+        ? "Gagal tersambung ke server " + this->uri 
+        : "Gagal tersambung ke server : " + errorMessage;
+
+    this->status = "Failed";
+}
+
+// Set method onMessage on class Metadata
+void SocketMetadata::onMessage(socket_client *_client, conn_hdl connectionHandler, _message message) {
+    string messageText = message->get_payload();
+    _connection conn = _client->get_con_from_hdl(connectionHandler);
+
+    string userId = conn->get_request_header("user-id");
+    string toUserId = conn->get_request_header("to-user-id");
+    string toUserFullname = conn->get_request_header("to-user-fullname");
+
+    if (messageText == "user-not-found" || messageText == "user-disconected" || messageText == "user-connected") {
+        string color = messageText == "user-connected" ? "\033[1;36m" : "\033[1;31m";
+        return this->messages.push_back(color + toUserFullname + " (" + toUserId + ")" + (messageText == "user-disconected" ? " " : messageText == "user-connected" ? " kembali " : " sedang ") + "offline\033[0m");
+    }
+
+    if (this->id == userId && messageText.length() != 0) {
+        // cout << toUserFullname + " (" + toUserId + ") : " + messageText << endl;
+        this->messages.push_back(toUserFullname + " (" + toUserId + ") : " + messageText);
+    }
+    
+}
+
+void SocketMetadata::onSendMessage(User *_user, string *_message) {
+    this->messages.push_back(_user->getFullname() + " (" + _user->getUsername() + ") : " + *_message );
+}
+
+vector<string> SocketMetadata::getReceiveMessage() {
+    vector<string> tempMessages = this->messages;
+    this->messages.clear();
+
+    return tempMessages;
+    
+    
+
+    // for (int i = 0; i < chats.size(); i++) {
+    //     cout << endl << chats[i].getFrom() << chats[i].getMessage();
+    // }
 }
 
 conn_hdl SocketMetadata::getConnectionHandler() {
@@ -66,6 +108,17 @@ conn_hdl SocketMetadata::getConnectionHandler() {
 
 string SocketMetadata::getStatus() {
     return this->status;
+}
+
+string SocketMetadata::getErrorReason() {
+    return this->errorReason;
+}
+
+string SocketMetadata::getServer() {
+    return this->server;
+}
+string SocketMetadata::getUri() {
+    return this->uri;
 }
 
 // Set out of message

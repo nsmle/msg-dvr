@@ -6,10 +6,6 @@ buildType="client"
 platform='unknown'
 executableExtension=''
 
-if [[ "$args2" == "run" ]]; then
-    clear;
-fi
-
 if [[ "$args1" == "server" ]]; then
     buildType="server"
 fi
@@ -18,7 +14,7 @@ fi
 case "$OSTYPE" in 
   linux*)   
         platform="LINUX"
-        executableExtension=".so"
+        # executableExtension=".so"
     ;;
   msys*)    
         platform="WINDOWS"
@@ -34,8 +30,16 @@ case "$OSTYPE" in
     ;;
 esac
 
+
 buildExecutable="${buildType}${executableExtension}"
 
+
+if [[ "$args2" == "run" ]]; then
+    if [ "$args1" == "server" ]; then 
+        killall -9 $buildExecutable;
+    fi
+    clear;
+fi
 
 if [[ "$args2" == "init" || ! -d "./build/$buildType/CMakeFiles" ]]; then
     cd "build/$buildType" && cmake ../../ && cd ../../

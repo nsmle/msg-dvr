@@ -1,13 +1,15 @@
 #include <socket_server.hpp>
 
+// const int PORT = 5000;
 
 int main() {
     printf("==== SERVER ====\n");
-    SocketServer socket;
+    Socket socket;
 
 
-    printf("==> SERVER START\n");
-    socket.run();
+    socket.run(PORT);
 
     return 0;
 }
+
+

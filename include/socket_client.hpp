@@ -3,10 +3,13 @@
 
 
 #include <iostream>
+#include <iomanip>
+#include <bits/stdc++.h>
 #include <boost/config.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <socket_metadata_client.hpp>
+#include <user.hpp>
 
 using namespace std;
 
@@ -17,21 +20,24 @@ typedef socket_client::message_ptr _message;
 
 class Socket {
 public:
+    User *_user;
+    User *_toUser;
+
     Socket();
-    string connect(string id, string uri);
     SocketMetadata::ptr getMetadata();
-    void onMessage();
-    void sendMessage(string id, string message);
+    string connect(User *_user, User *_toUser, string uri);
+    void sendMessage(string *_message);
+    bool listen_chat();
+    void close();
 
 private:
-    // typedef map<string, SocketMetadata::ptr> conn_list;
+    string host = "localhost";
+    int port = 9000;
+
 
     socket_client client;
     socket_thread thread;
     SocketMetadata::ptr metadata;
-    string host = "localhost";
-    int port = 9000;
-    
 
     string getUri() {
         return "ws://" + this->host + ":" + to_string(this->port);

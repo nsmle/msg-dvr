@@ -1,138 +1,138 @@
-#include <socket_client.hpp>
 #include <user.hpp>
+#include <socket_client.hpp>
+#include <chrono>
+#include <future>
 
-// int main() {    
-//     Socket io;
-//     string uri = "ws://localhost:9082";
+using namespace std;
 
-//     string connection = io.connect(uri, "asdf");
-//     cout << connection << endl;
-
-//     printf("==== CLIENT ====\n");
-
-//     return 0;
-// }
-
-const string URI = "ws://localhost:9782";
-// const string ID = "winda";
+// Config
+const int PORT = 5000;
+// const string HOST = "192.168.0.3";
+const string HOST = "localhost";
 
 
-void initUsers (User *_user) {
-    string usernames[3] = {
-        "fiki",
-        "rizka",
-        "nanda",
-    };
-    string fullname[3] = {
-        "Fiki Pratama",
-        "Rizka Amelia Sari",
-        "Muhammad Nanda Maulana Yasin",
-    };
-    string passwords[3] = {
-        "fikisecret",
-        "rizkasecret",
-        "nandasecret",
-    };
-
-
-
-    User user = *(_user);
-    for (int i = 0; i < 3; i++) {
-        User userCreated = user.createUser(usernames[i], fullname[i], passwords[i]);
-        _user->users.insert(make_pair(usernames[i], user));
-    }
-}
-
-
-void login(User *_user, string *_input) {    
-    
-    cout << "Username : ";
-    getline(cin, *_input);
-
-    map<string, User>::iterator userIt = _user->users.find(*_input);
-    if (userIt == _user->users.end()) {
-        cout << "User not found, Please retry again!\n\n";
-        login(_user, _input);
-    }
-
-    cout << "Password : ";
-    getline(cin, *_input);
-
-    if (userIt->second.getPassword() != *_input) {
-        cout << "Password wrong, Please retry again!\n\n";
-        login(_user, _input);
-    }
-        
-    cout << "Berhasil login sebagai " << userIt->second.getFullname() << endl << endl;
-
-
-    _user->setUser(userIt->second.it());
+void initialize() {
 
 }
 
 
+void useDummyUser(User *_user) {
+    try {
+        // username at index 0, fullname at index 1, password at index 2, 
+        _user->setUsers({
+            { "fiki", "Fiki Pratama", "fikisecret" },
+            { "rizka", "Rizka Amelia Sari", "rizkasecret" },
+            { "nanda", "Muhammad Nanda Maulana Yasin", "nandasecret" }
+        });
+    } catch(const std::exception& e) {
+        std::cout << e.what() << endl;
+    }
+}
+
+string getMessage(User *_user) {
+    string message;
+
+    fputs(("\n" + _user->getFullname() + " (" + _user->getUsername() + ") : ").c_str(), stdout);
+    getline(cin, message);
+
+    return message;
+}
+
+void chat(Socket *_socket, User *_user) {
+    future<string> futureMsg = async(launch::async, [_user]() {
+        return getMessage(_user);
+    });
+
+    while (true) {
+        if (futureMsg.wait_for(chrono::seconds(0)) == future_status::ready) {
+            string message = futureMsg.get();
+
+            // Set a new line. Subtle race condition between the previous line
+            // and this. Some lines could be missed. To aleviate, you need an
+            // io-only thread. I'll give an example of that as well.
+            futureMsg = async(launch::async, [_user]() {
+                return getMessage(_user);
+            });
+
+            // std::std::cout << "you wrote " << line << std::endl;
+            if (message == "clear") {
+                system("clear");
+                continue;
+            } else if (message == "exit") {
+                _socket->close();
+                return;
+            }
+
+            _socket->sendMessage(&message);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        // fputs("\033[A\033[2K", stdout);
+        // rewind(stdout);
+        _socket->listen_chat();
+        // if (isChatReplied) {
+        //     fputs("\033[A\033[2K", stdout);
+        //     rewind(stdout);
+        //     isChatReplied = false;
+        // }
+
+        // std::cout << "waiting..." << std::endl;
+        // std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
 
 int main() {
-    // bool done = false;
-    // string input;
-    // Socket io;
-    // User user;
-    // initUsers(&user);
-    // login(&user, &input);
+    User user, toUser;
+    useDummyUser(&user);
 
-    // string ID;
-
-    // cout << "ID : ";
-    // getline(cin, ID);
     
-    // string connId = io.connect(ID, URI);
-    // if (connId != "error") {
-    //     cout << "> Created connection with id " << connId << endl << endl;
+    // map<string, User>::iterator user1 = user.users.find("nanda");
+    // map<string, User>::iterator user2 = user.users.find("rizka");
+    string input;
+    std::cout << "from user : ";
+    std::cin >> input; 
+    map<string, User>::iterator user1 = user.users.find(input);
+    std::cout << "to user : ";
+    std::cin >> input; 
+    map<string, User>::iterator user2 = user.users.find(input);
+
+
+    if (user1 == user.users.end() || user2 == user.users.end()) {
+        std::cout << "No User" << endl;
+        return 0;
+    }
+
+    user.setUser(user1->second.getUsername(), user1->second.getFullname(), user1->second.getPassword());
+    toUser.setUser(user2->second.getUsername(), user2->second.getFullname(), user2->second.getPassword());
+    
+    Socket socket;
+    string connected = socket.connect(&user, &toUser, "ws://"+HOST+":"+to_string(PORT));
+    if (connected != user.getUsername()) {
+        std::cout << connected << endl;
+        return 0;
+    }
+
+    chat(&socket, &user);
+
+    // string message;
+    // while (true) {
+    //     std::cout << user.getFullname() + " (" + user.getUsername() + ") : ";
+    //     getline(cin, message);
+
+    //     if (message == "quit" || message == "\\q") return 0;
+    //     socket.sendMessage(&message);
     // }
 
 
-    
-    // while (!done) {
-    //     cout << connId << " : ";
-    //     getline(cin, input);
 
-    //     if (input == "quit") {
-    //         done = true;
-    //     } else {
-    //         io.sendMessage("wulan", input);
-    //     }
-        
-    //     // if (input == "quit") {
-    //     //     done = true;
-    //     // } else if (input == "clear") {
-    //     //     system("clear");
-    //     // } else if (input == "help") {
-    //     //     cout
-    //     //         << "\nCommand List:\n"
-    //     //         << "connect <ws uri>\n"
-    //     //         << "show <connection id>\n"
-    //     //         << "help: Display this help text\n"
-    //     //         << "quit: Exit the program\n"
-    //     //         << std::endl;
-    //     // } else if (input.substr(0,7) == "connect") {
-    //     //     string connId = io.connect(ID, URI);
-
-    //     //     if (connId != "error") {
-    //     //         std::cout << "> Created connection with id " << connId << std::endl;
-    //     //     }
-    //     // } else if (input == "test") {
-    //     //     io.sendMessage("wulan", "user-connect");
-    //     // } else if (input.substr(0,4) == "show") {
-    //     //     SocketMetadata::ptr metadata = io.getMetadata();
-    //     //     if (metadata) {
-    //     //         std::cout << *metadata << std::endl;
-    //     //     } else {
-    //     //         std::cout << "> Unknown connection id " << ID << std::endl;
-    //     //     }
-    //     // } else {
-    //     //     cout << "> Unrecognized Command" << std::endl;
-    //     // }
-    // }
 
     return 0;
 }
+
+
+
+/**
+
+    menu -> login -> chat menu -> chat to
+                                
+
+*/

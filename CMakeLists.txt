@@ -16,7 +16,7 @@ execute_process(
 
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(EXECUTABLE_EXTENSION ".so")
+    # set(EXECUTABLE_EXTENSION ".so")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(EXECUTABLE_EXTENSION ".exe")
 else()
@@ -53,6 +53,7 @@ elseif("${BUILD_TYPE}" STREQUAL "client")
 	set(BUILD_SOURCES
 		${SOURCE_DIR}/main.cpp
 		${SOURCE_DIR}/user.cpp
+		${SOURCE_DIR}/chat.cpp
 		${SOURCE_DIR}/socket/socket.cpp
 		${SOURCE_DIR}/socket/metadata.cpp
 	)
