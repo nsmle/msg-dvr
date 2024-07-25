@@ -94,7 +94,7 @@ void Socket::close() {
 }
 
 // Set method sendMessage on class Socket
-bool Socket::listen_chat() {
+void Socket::listen_chat() {
     // system("clear");
     vector<string> chats = this->metadata->getReceiveMessage();
     
@@ -120,11 +120,11 @@ bool Socket::listen_chat() {
 
     // std::cout << endl << this->_user->getFullname() + " (" + this->_user->getUsername() + ") : ";
     this_thread::sleep_for(chrono::milliseconds(500));
-    return chats.size() ? true : false;
 }
 
 // Set method sendMessage on class Socket
 void Socket::sendMessage(string *_message) {
+    if (*_message == "") return;
     error_code error;
 
     SocketMetadata::ptr _metadata = this->getMetadata();
@@ -134,6 +134,6 @@ void Socket::sendMessage(string *_message) {
     client.send(_metadata->getConnectionHandler(), *_message, websocketpp::frame::opcode::text, error);
     if (error) {
         std::cout << "Error send message : " << error.message() << endl;
-        return;
+        return this->close();
     }
 }

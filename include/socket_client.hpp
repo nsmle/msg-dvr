@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <bits/stdc++.h>
 #include <boost/config.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
@@ -27,12 +26,12 @@ public:
     SocketMetadata::ptr getMetadata();
     string connect(User *_user, User *_toUser, string uri);
     void sendMessage(string *_message);
-    bool listen_chat();
+    void listen_chat();
     void close();
 
 private:
     string host = "localhost";
-    int port = 9000;
+    int port = 5000;
 
 
     socket_client client;

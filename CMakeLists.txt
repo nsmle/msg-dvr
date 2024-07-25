@@ -43,6 +43,7 @@ find_package(Boost COMPONENTS thread REQUIRED)
 include_directories(${WEBSOCKETPP_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+message(${Boost_INCLUDE_DIRS})
 
 if("${BUILD_TYPE}" STREQUAL "server")
 	set(BUILD_SOURCES

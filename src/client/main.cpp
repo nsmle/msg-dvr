@@ -7,8 +7,8 @@ using namespace std;
 
 // Config
 const int PORT = 5000;
-// const string HOST = "192.168.0.3";
-const string HOST = "localhost";
+const string HOST = "192.168.0.3";
+// const string HOST = "192.168.4.45";
 
 
 void initialize() {
@@ -22,17 +22,18 @@ void useDummyUser(User *_user) {
         _user->setUsers({
             { "fiki", "Fiki Pratama", "fikisecret" },
             { "rizka", "Rizka Amelia Sari", "rizkasecret" },
-            { "nanda", "Muhammad Nanda Maulana Yasin", "nandasecret" }
+            { "nanda", "Muhammad Nanda Maulana Yasin", "nandasecret" },
+            { "sabib", "Sabib Prastio", "sabibsecret" }
         });
     } catch(const std::exception& e) {
         std::cout << e.what() << endl;
     }
 }
 
-string getMessage(User *_user) {
+string getMessage(User *_user, bool isInit = false) {
     string message;
 
-    fputs(("\n" + _user->getFullname() + " (" + _user->getUsername() + ") : ").c_str(), stdout);
+    if (!isInit) fputs((_user->getFullname() + " (" + _user->getUsername() + ") : ").c_str(), stdout);
     getline(cin, message);
 
     return message;
@@ -40,23 +41,22 @@ string getMessage(User *_user) {
 
 void chat(Socket *_socket, User *_user) {
     future<string> futureMsg = async(launch::async, [_user]() {
-        return getMessage(_user);
+        return getMessage(_user, true);
     });
 
     while (true) {
         if (futureMsg.wait_for(chrono::seconds(0)) == future_status::ready) {
             string message = futureMsg.get();
 
-            // Set a new line. Subtle race condition between the previous line
-            // and this. Some lines could be missed. To aleviate, you need an
-            // io-only thread. I'll give an example of that as well.
             futureMsg = async(launch::async, [_user]() {
                 return getMessage(_user);
             });
 
-            // std::std::cout << "you wrote " << line << std::endl;
             if (message == "clear") {
                 system("clear");
+                continue;
+            } else if (message == "reconnect") {
+                _socket->connect(_socket->_user, _socket->_toUser, "ws://"+HOST+":"+to_string(PORT));
                 continue;
             } else if (message == "exit") {
                 _socket->close();
@@ -64,11 +64,17 @@ void chat(Socket *_socket, User *_user) {
             }
 
             _socket->sendMessage(&message);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        // fputs("\033[A\033[2K", stdout);
-        // rewind(stdout);
+        
+        string promiseMessage = futureMsg.get();
+        std::cout << promiseMessage << std::endl;
         _socket->listen_chat();
+        if (_socket->getMetadata()->getStatus() == "Closed") return;
+        // if (!ready) {
+        //     fputs("\033[A\033[2K", stdout);
+        //     ready = true;
+        // }
         // if (isChatReplied) {
         //     fputs("\033[A\033[2K", stdout);
         //     rewind(stdout);

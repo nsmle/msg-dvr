@@ -35,13 +35,14 @@ public:
     conn_hdl getUserConnectionHandler(string userId);
     bool userExist(string userId);
     bool sessionExist(string userId, string toUserId);
+    bool sessionExistToOther(string userId, string toUserId);
     void onOpen(conn_hdl connectionHandler);
     void onClose(conn_hdl connectionHandler);
     void onMessage(conn_hdl connectionHandler, _message message);
 
 private:
     users_t users;
-    vector<string> sessions;
+    vector<vector<string>> sessions;
     socket_server server;
     int port;
 };

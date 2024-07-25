@@ -73,19 +73,35 @@ void Socket::onOpen(conn_hdl connectionHandler) {
     string toUserId = conn->get_request_header("to-user-id");
     string userFullname = conn->get_request_header("user-fullname");
     string toUserFullname = conn->get_request_header("to-user-fullname");
+    
+    if (this->userExist(userId)) {
+        return server.send(connectionHandler, "connection-exists", websocketpp::frame::opcode::text);
+    }
 
     this->addUser(userId, connectionHandler);
+
+    if (this->sessionExistToOther(userId, toUserId)) {
+        return server.send(connectionHandler, "connection-to-other", websocketpp::frame::opcode::text);
+    }
+
+
+
+    if (!this->sessionExist(userId, toUserId)) {
+        this->sessions.push_back({ userId, toUserId });
+        for (auto s: this->sessions) {
+            cout << s[0] << "-" << s[1] << endl;
+        }
+    }
  
     if (!this->userExist(toUserId)) {
         std::cout << "To " + toUserFullname << " (" << toUserId <<  ") offline" << std::endl;
+
+
         server.send(connectionHandler, "user-not-found", websocketpp::frame::opcode::text);
     } else {
-        if (!this->sessionExist(userId, toUserId)) {
-            this->sessions.push_back(userId + "-" + toUserId);
-        }
 
         std::cout << userFullname << " (" << userId <<  ") connected" << std::endl;
-        if (this->sessionExist(userId, toUserId)) {
+        if (this->sessionExist(toUserId, userId)) {
             server.send(this->getUserConnectionHandler(toUserId), "user-connected", websocketpp::frame::opcode::text);
         }
     }
@@ -103,7 +119,7 @@ void Socket::onClose(conn_hdl connectionHandler) {
 
     
     std::cout << userFullname << " (" << userId <<  ") disconected" << std::endl;
-    this->removeUser(userId);
+    if (this->userExist(userId)) this->removeUser(userId);
 
     if (this->userExist(toUserId)) {
         server.send(this->getUserConnectionHandler(toUserId), "user-disconected", websocketpp::frame::opcode::text);
@@ -131,15 +147,23 @@ bool Socket::userExist(string userId) {
 
 // Set method sessionExist on class Socket
 bool Socket::sessionExist(string userId, string toUserId) {
-    bool exist = false;
-
-    for (auto session: sessions) {
-        if (session == userId + "-" + toUserId ||
-            session == toUserId + "-" + userId)
-            exist = true;
+    for (auto session: this->sessions) {
+        if (session[0] == userId && session[1] == toUserId) return true;
+         
     }
 
-    return exist;
+    return false;
+}
+
+// Set method sessionExistToOther on class Socket
+bool Socket::sessionExistToOther(string userId, string toUserId) {
+    int existCount = 0;
+    for (auto session: this->sessions) {
+         cout << "xx " << session[0] << endl;
+        if (session[0] == toUserId || session[1] == toUserId) existCount++;
+    }
+
+    return (existCount >= 2) ? true : false;
 }
 
 // Set method getUserConnectionHandler on class Socket
@@ -173,7 +197,7 @@ void Socket::onMessage(conn_hdl connectionHandler, _message message) {
 
 
     if (this->userExist(toUserId) &&
-        this->sessionExist(userId, toUserId) &&
+        this->sessionExist(toUserId, userId) &&
         messageText.length() != 0) {
         try {
             server.send(this->getUserConnectionHandler(toUserId), messageText, websocketpp::frame::opcode::text);

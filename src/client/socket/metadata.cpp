@@ -70,8 +70,19 @@ void SocketMetadata::onMessage(socket_client *_client, conn_hdl connectionHandle
     _connection conn = _client->get_con_from_hdl(connectionHandler);
 
     string userId = conn->get_request_header("user-id");
+    string userFullname = conn->get_request_header("user-fullname");
     string toUserId = conn->get_request_header("to-user-id");
     string toUserFullname = conn->get_request_header("to-user-fullname");
+
+    if (messageText == "connection-exists") {
+        this->messages.push_back("\033[1;31mPengguna dengan sesi " + userFullname + " (" + userId + ") sedang login, multi sesi tidak diizinkan!\033[0m");
+        return _client->close(connectionHandler, websocketpp::close::status::bad_gateway, "connection-exists");
+    }
+
+    if (messageText == "connection-to-other") {
+        this->messages.push_back("\033[1;31mPengguna " + toUserFullname + " (" + toUserId + ") sedang chat dengan pengguna lain!\033[0m");
+        return _client->close(connectionHandler, websocketpp::close::status::bad_gateway, "connection-exists");
+    }
 
     if (messageText == "user-not-found" || messageText == "user-disconected" || messageText == "user-connected") {
         string color = messageText == "user-connected" ? "\033[1;36m" : "\033[1;31m";
@@ -80,7 +91,7 @@ void SocketMetadata::onMessage(socket_client *_client, conn_hdl connectionHandle
 
     if (this->id == userId && messageText.length() != 0) {
         // cout << toUserFullname + " (" + toUserId + ") : " + messageText << endl;
-        this->messages.push_back(toUserFullname + " (" + toUserId + ") : " + messageText);
+        this->messages.push_back("\033[1;34m" + toUserFullname + " (" + toUserId + ") : " + messageText + "\033[0m");
     }
     
 }
